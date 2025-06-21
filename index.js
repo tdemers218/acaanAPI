@@ -13,19 +13,19 @@ const mnemonicaStack = [
 
 // Map card values in English & French (accent stripped)
 const valueMap = {
-    ace: "A", as: "A", one: "A",
-    two: "2", deux: "2",
-    three: "3", trois: "3",
-    four: "4", quatre: "4",
-    five: "5", cinq: "5",
-    six: "6",
-    seven: "7", sept: "7",
-    eight: "8", huit: "8",
-    nine: "9", neuf: "9",
-    ten: "10", dix: "10",
-    jack: "J", valet: "J",
-    queen: "Q", reine: "Q",
-    king: "K", roi: "K"
+  ace: "A", as: "A", one: "A", "1": "A",
+  two: "2", deux: "2", "2": "2",
+  three: "3", trois: "3", "3": "3",
+  four: "4", quatre: "4", "4": "4",
+  five: "5", cinq: "5", "5": "5",
+  six: "6", "6": "6",
+  seven: "7", sept: "7", "7": "7",
+  eight: "8", huit: "8", "8": "8",
+  nine: "9", neuf: "9", "9": "9",
+  ten: "10", dix: "10", "10": "10",
+  jack: "J", valet: "J", "11": "J",
+  queen: "Q", reine: "Q", "12": "Q",
+  king: "K", roi: "K", "13": "K"
 };
 
 // Map suits in English & French (accent stripped)
