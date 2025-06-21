@@ -34,6 +34,7 @@ app.post("/cutcard", (req, res) => {
   let cardSuit = null;
   let targetPosition = null;
 
+  // STEP 1: Find a card in format (value + suit)
   for (let i = 0; i < words.length; i++) {
     const val = valueMap[words[i]] || (/^(10|[2-9]|[ajqk])$/i.test(words[i]) ? words[i].toUpperCase() : null);
     const suit = suitMap[words[i + 1]];
@@ -45,15 +46,19 @@ app.post("/cutcard", (req, res) => {
     }
   }
 
-  // Extract all numbers and remove the one used for the card if it matches
-  const numberMatches = [...text.matchAll(/\b([1-9]|[1-4][0-9]|52|10)\b/g)].map(m => parseInt(m[1]));
-  const cardNumber = cardValue && /^\d+$/.test(cardValue) ? parseInt(cardValue) : null;
+  // STEP 2: Extract numbers and pick one that isn’t the card value
+  const numberMatches = [...text.matchAll(/\b(10|[1-9]|[1-4][0-9]|52)\b/g)].map(m => parseInt(m[1]));
+  const cardNumber = /^\d+$/.test(cardValue) ? parseInt(cardValue) : null;
   targetPosition = numberMatches.find(n => n !== cardNumber);
+
+  // DEBUG logs
+  console.log({ words, cardValue, cardSuit, card, cardNumber, numberMatches, targetPosition });
 
   if (!card || !targetPosition) {
     return res.status(400).json({ error: "Could not extract card and/or position from text" });
   }
 
+  // STEP 3: Get card index in stack
   const cardIndex = mnemonicaStack.indexOf(card);
   if (cardIndex === -1) {
     return res.status(404).json({ error: `Card ${card} not found in the stack.` });
@@ -82,5 +87,6 @@ app.post("/cutcard", (req, res) => {
     }
   });
 });
+
 
 app.listen(3000, () => console.log("API running on port 3000"));
