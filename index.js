@@ -85,16 +85,24 @@ app.post("/cutcard", (req, res) => {
   const cutCard = mnemonicaStack[cutIndex - 1];
   const cutCardPosition = cutIndex ;
 
-  res.json({
-    input: text,
-    card,
-    cardStackPosition: cardPos,
-    targetPosition,
-    cutTo: {
-      card: cutCard,
-      position: cutCardPosition
-    }
-  });
+  const topCard = mnemonicaStack[(cutIndex + 1) % 52];
+  const topCardPosition = ((cutIndex + 1) % 52) + 1;
+
+
+res.json({
+  input: text,
+  card, // target card to arrive at `targetPosition`
+  cardStackPosition: cardPos,
+  targetPosition,
+  cut: {
+    moveThisCard: cutCard,
+    fromPosition: cutIndex + 1
+  },
+  afterCut: {
+    topCard,
+    topCardPosition
+  }
+});
 });
 
 app.listen(3000, () => console.log("API running on port 3000"));
