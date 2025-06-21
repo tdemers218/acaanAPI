@@ -11,67 +11,118 @@ const mnemonicaStack = [
   "AH", "9D"
 ];
 
+// Map card values in English & French (accent stripped)
 const valueMap = {
-  ace: "A", one: "A", two: "2", three: "3", four: "4",
-  five: "5", six: "6", seven: "7", eight: "8", nine: "9",
-  ten: "10", jack: "J", queen: "Q", king: "K"
+  ace: "A", as: "A", one: "A",
+  two: "2", deux: "2",
+  three: "3", trois: "3",
+  four: "4", quatre: "4",
+  five: "5", cinq: "5",
+  six: "6",
+  seven: "7", sept: "7",
+  eight: "8", huit: "8",
+  nine: "9", neuf: "9",
+  ten: "10", dix: "10",
+  jack: "J", valet: "J",
+  queen: "Q", reine: "Q",
+  king: "K", roi: "K"
 };
 
+// Map suits in English & French (accent stripped)
 const suitMap = {
-  hearts: "H", heart: "H", h: "H", "♥": "H",
-  spades: "S", spade: "S", s: "S", "♠": "S",
-  diamonds: "D", diamond: "D", d: "D", "♦": "D",
-  clubs: "C", club: "C", c: "C", "♣": "C"
+  hearts: "H", heart: "H", coeur: "H", coeurs: "H", "♥": "H", h: "H",
+  spades: "S", spade: "S", pique: "S", piques: "S", "♠": "S", s: "S",
+  diamonds: "D", diamond: "D", carreau: "D", carreaux: "D", "♦": "D", d: "D",
+  clubs: "C", club: "C", trefle: "C", trèfle: "C", "♣": "C", c: "C"
 };
+
+// Helper to remove accents & lowercase string
+function normalizeText(str) {
+  return str
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // remove accents
+    .toLowerCase();
+}
 
 app.post("/cutcard", (req, res) => {
   const { text } = req.body;
   if (!text) return res.status(400).json({ error: "Text is required" });
 
-  const lower = text.toLowerCase();
-  const words = lower.split(/\W+/);
+  // Normalize input
+  const normalized = normalizeText(text);
 
-  let card = null;
+  // Split words including across line breaks
+  const words = normalized.split(/\W+/).filter(Boolean);
+
   let cardValue = null;
   let cardSuit = null;
 
-  // STEP 1: Detect format like "10 of spades"
-  for (let i = 0; i < words.length - 2; i++) {
-    const valueWord = words[i];
-    const middleWord = words[i + 1];
-    const suitWord = words[i + 2];
+  // Find card value + suit anywhere in text
+  // Allow "value of suit", "value suit", or even separated by words
+  for (let i = 0; i < words.length; i++) {
+    // Check 3-word combos: value + (optional "of"/"de") + suit
+    if (i + 2 < words.length) {
+      const valWord = words[i];
+      const midWord = words[i + 1];
+      const suitWord = words[i + 2];
 
-    const val = valueMap[valueWord] || (valueWord.match(/^(10|[2-9]|[ajqk])$/i) ? valueWord.toUpperCase() : null);
-    const suit = suitMap[suitWord];
+      if (
+        (valueMap[valWord]) &&
+        (midWord === "of" || midWord === "de") &&
+        suitMap[suitWord]
+      ) {
+        cardValue = valueMap[valWord];
+        cardSuit = suitMap[suitWord];
+        break;
+      }
+    }
 
-    if (val && (middleWord === "of" || suitMap[middleWord])) {
-      cardValue = val;
-      cardSuit = suit;
+    // Check 2-word combos: value + suit
+    if (i + 1 < words.length) {
+      const valWord = words[i];
+      const suitWord = words[i + 1];
+
+      if (valueMap[valWord] && suitMap[suitWord]) {
+        cardValue = valueMap[valWord];
+        cardSuit = suitMap[suitWord];
+        break;
+      }
+    }
+
+    // Check 1-word combos like "A", "K", "Q", "10" followed immediately by suit initial "h", "s", etc
+    const oneWord = words[i];
+    // example: "ah", "10s", "kd"
+    if (/^(10|[ajqk2-9])([hsdc])$/.test(oneWord)) {
+      const parts = oneWord.match(/^(10|[ajqk2-9])([hsdc])$/);
+      cardValue = parts[1].toUpperCase();
+      cardSuit = suitMap[parts[2]];
       break;
     }
   }
 
-  // STEP 2: Extract all numbers
-  const numberMatches = [...text.matchAll(/\b(10|[1-9]|[1-4][0-9]|52)\b/g)].map(m => parseInt(m[1]));
-  const cardNumber = /^\d+$/.test(cardValue) ? parseInt(cardValue) : null;
-  const targetPosition = numberMatches.find(n => n !== cardNumber);
-
-  // STEP 3: Build final card
-  if (cardValue && cardSuit) {
-    card = `${cardValue}${cardSuit}`;
+  if (!cardValue || !cardSuit) {
+    return res.status(400).json({ error: "Could not detect card value and suit" });
   }
 
-  // DEBUG
-  console.log({ words, cardValue, cardSuit, card, cardNumber, numberMatches, targetPosition });
+  // Build card code e.g. "10S"
+  const card = `${cardValue}${cardSuit}`;
 
-  if (!card || !targetPosition) {
-    return res.status(400).json({ error: "Could not extract card and/or position from text" });
+  // Extract all numbers (1 to 52) as possible positions
+  const positionMatches = [...normalized.matchAll(/\b([1-9]|[1-4][0-9]|52)\b/g)].map(m => parseInt(m[1]));
+  
+  // Remove card number if cardValue is numeric (e.g. "10")
+  const cardNumber = /^\d+$/.test(cardValue) ? parseInt(cardValue) : null;
+  const position = positionMatches.find(n => n !== cardNumber);
+
+  if (!position) {
+    return res.status(400).json({ error: "Could not detect position number" });
   }
 
   const cardIndex = mnemonicaStack.indexOf(card);
   if (cardIndex === -1) {
-    return res.status(404).json({ error: `Card ${card} not found in the stack.` });
+    return res.status(404).json({ error: `Card ${card} not found in stack` });
   }
+
 
   const cardPos = cardIndex + 1;
   let cutIndex;
