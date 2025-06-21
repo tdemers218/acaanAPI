@@ -11,60 +11,69 @@ const mnemonicaStack = [
   "AH", "9D"
 ];
 
+const valueMap = {
+  ace: "A", one: "A", two: "2", three: "3", four: "4",
+  five: "5", six: "6", seven: "7", eight: "8", nine: "9",
+  ten: "10", jack: "J", queen: "Q", king: "K"
+};
+
+const suitMap = {
+  hearts: "H", heart: "H", h: "H", "♥": "H",
+  spades: "S", spade: "S", s: "S", "♠": "S",
+  diamonds: "D", diamond: "D", d: "D", "♦": "D",
+  clubs: "C", club: "C", c: "C", "♣": "C"
+};
+
 app.post("/cutcard", (req, res) => {
   const { text } = req.body;
   if (!text) return res.status(400).json({ error: "Text is required" });
 
-  const suitMap = {
-    h: "H", hearts: "H", heart: "H", "♥": "H",
-    s: "S", spades: "S", spade: "S", "♠": "S",
-    d: "D", diamonds: "D", diamond: "D", "♦": "D",
-    c: "C", clubs: "C", club: "C", "♣": "C"
-  };
+  const lower = text.toLowerCase();
+  const words = lower.split(/\W+/);
 
-  const valueMap = {
-    ace: "A", one: "A", two: "2", three: "3", four: "4",
-    five: "5", six: "6", seven: "7", eight: "8", nine: "9",
-    ten: "10", jack: "J", queen: "Q", king: "K"
-  };
-
-  const words = text.toLowerCase().split(/\W+/);
   let card = null;
   let cardValue = null;
   let cardSuit = null;
-  let targetPosition = null;
 
-  // STEP 1: Find a card in format (value + suit)
-  for (let i = 0; i < words.length; i++) {
-    const val = valueMap[words[i]] || (/^(10|[2-9]|[ajqk])$/i.test(words[i]) ? words[i].toUpperCase() : null);
-    const suit = suitMap[words[i + 1]];
-    if (val && suit) {
-      cardValue = val.length === 1 ? val.toUpperCase() : val;
+  // STEP 1: Detect format like "10 of spades"
+  for (let i = 0; i < words.length - 2; i++) {
+    const valueWord = words[i];
+    const middleWord = words[i + 1];
+    const suitWord = words[i + 2];
+
+    const val = valueMap[valueWord] || (valueWord.match(/^(10|[2-9]|[ajqk])$/i) ? valueWord.toUpperCase() : null);
+    const suit = suitMap[suitWord];
+
+    if (val && (middleWord === "of" || suitMap[middleWord])) {
+      cardValue = val;
       cardSuit = suit;
-      card = `${cardValue}${cardSuit}`;
       break;
     }
   }
 
-  // STEP 2: Extract numbers and pick one that isn’t the card value
+  // STEP 2: Extract all numbers
   const numberMatches = [...text.matchAll(/\b(10|[1-9]|[1-4][0-9]|52)\b/g)].map(m => parseInt(m[1]));
   const cardNumber = /^\d+$/.test(cardValue) ? parseInt(cardValue) : null;
-  targetPosition = numberMatches.find(n => n !== cardNumber);
+  const targetPosition = numberMatches.find(n => n !== cardNumber);
 
-  // DEBUG logs
+  // STEP 3: Build final card
+  if (cardValue && cardSuit) {
+    card = `${cardValue}${cardSuit}`;
+  }
+
+  // DEBUG
   console.log({ words, cardValue, cardSuit, card, cardNumber, numberMatches, targetPosition });
 
   if (!card || !targetPosition) {
     return res.status(400).json({ error: "Could not extract card and/or position from text" });
   }
 
-  // STEP 3: Get card index in stack
   const cardIndex = mnemonicaStack.indexOf(card);
   if (cardIndex === -1) {
     return res.status(404).json({ error: `Card ${card} not found in the stack.` });
   }
 
-  const cardPos = cardIndex + 1; // 1-based position
+  const cardPos = cardIndex + 1;
   let cutIndex;
 
   if (cardPos > targetPosition) {
@@ -87,6 +96,5 @@ app.post("/cutcard", (req, res) => {
     }
   });
 });
-
 
 app.listen(3000, () => console.log("API running on port 3000"));
