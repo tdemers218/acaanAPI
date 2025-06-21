@@ -85,8 +85,8 @@ app.post("/cutcard", (req, res) => {
   const cutCard = mnemonicaStack[cutIndex - 1];
   const cutCardPosition = cutIndex ;
 
-  const topCard = mnemonicaStack[(cutIndex + 1) % 52];
-  const topCardPosition = ((cutIndex + 1) % 52) + 1;
+  const topCard = mnemonicaStack[(cutIndex ) % 52];
+  const topCardPosition = ((cutIndex + 1) % 52) ;
 
 
 res.json({
