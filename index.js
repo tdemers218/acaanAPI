@@ -95,8 +95,8 @@ res.json({
   cardStackPosition: cardPos,
   targetPosition,
   cut: {
-    moveThisCard: cutCard,
-    fromPosition: cutIndex + 1
+    bottomCard: cutCard,
+    cardPosition: cutIndex + 1
   },
   afterCut: {
     topCard,
