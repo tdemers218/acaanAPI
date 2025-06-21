@@ -73,7 +73,7 @@ app.post("/cutcard", (req, res) => {
     return res.status(404).json({ error: `Card ${card} not found in the stack.` });
   }
 
-  const cardPos = cardIndex ;
+  const cardPos = cardIndex + 1;
   let cutIndex;
 
   if (cardPos > targetPosition) {
@@ -83,7 +83,7 @@ app.post("/cutcard", (req, res) => {
   }
 
   const cutCard = mnemonicaStack[cutIndex];
-  const cutCardPosition = cutIndex + 1;
+  const cutCardPosition = cutIndex ;
 
   res.json({
     input: text,
