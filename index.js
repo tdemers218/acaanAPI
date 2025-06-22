@@ -148,7 +148,7 @@ app.post("/cutcard", (req, res) => {
         targetPosition: position,
         cut: {
             bottomCard: cutCard,
-            cardPosition: cutIndex + 1
+            cardPosition: cutIndex
         },
         afterCut: {
             topCard,
